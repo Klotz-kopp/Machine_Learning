@@ -1,0 +1,8 @@
+requests
+numpy
+pandas
+seaborn
+psycopg2
+seaborn
+sqlalchemy
+matplotlib

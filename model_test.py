@@ -1,11 +1,14 @@
 #  Copyright (c) 2025. Diese Python Skripte wurden von mir erstellt und können als Referenz von anderen genutzt und gelesen werden.
-# Testen verschiedener Modelle am selben Dataframe um zu prüfen, welches Modell die besten Ergebnisse liefert.
 import os
 import pickle
 import time
 
 import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
+import sqlalchemy
+import configparser
+from base64 import b64decode
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -16,6 +19,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+from datetime import datetime
 
 from funktionen import printf
 
@@ -50,6 +54,7 @@ Modelle = [
 ]
 
 datenname = 'malware_detect'
+
 
 def main():
     # Dictionary zum Speichern der Ergebnisse: Key = Modellname, Value = Liste der Scores
@@ -110,26 +115,32 @@ def main():
     modell_vergleich(Ergebnisse)
 
 
+def erstelle_modell_tests_tabelle(engine, db_schema):
+    """Erstellt die Tabelle modell_tests, falls sie noch nicht existiert."""
+    with engine.connect() as conn:
+        conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {db_schema}.modell_tests (
+                id SERIAL PRIMARY KEY,
+                modellname TEXT NOT NULL,
+                score FLOAT NOT NULL,
+                durchgang INT NOT NULL,
+                dauer FLOAT NOT NULL,
+                datenname TEXT NOT NULL,
+                laufzeit TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+    print("Tabelle modell_tests geprüft/erstellt.")
+
+
 def modell_vergleich(Ergebnisse):
-    # DONE bestes Modell je Durchgang finden
-    # DONE bestes Modell über alle Durchgänge finden
-    # DONE beste Kombi aus Modell und Durchgang finden
-    # DONE die Dauer mit berücksichtigen
     # ermittle höchste Genauigkeit je Modell
     # Ergebnisliste vorbereiten
     beste_ergebnisse = {}
 
     for key, werte in Ergebnisse.items():
-        # Erst den höchsten Score finden
         max_score = max(w[1] for w in werte)
-
-        # Alle Einträge mit diesem Max-Score herausfiltern
         kandidaten = [w for w in werte if w[1] == max_score]
-
-        # Aus den Kandidaten den mit der geringsten Dauer nehmen
-        best = min(kandidaten, key=lambda x: x[2])  # x[2] ist Dauer
-
-        # Als bestes Ergebnis abspeichern
+        best = min(kandidaten, key=lambda x: x[2])  # kleinste Dauer bei gleichem Score
         beste_ergebnisse[key] = best
 
     df_beste = pd.DataFrame.from_dict(beste_ergebnisse, orient='index', columns=['Durchgang', 'Score (%)', 'Dauer (s)'])
@@ -137,19 +148,33 @@ def modell_vergleich(Ergebnisse):
     df_beste.reset_index(inplace=True)
     df_beste['Modell'] = df_beste['Modell'].str.replace('_ergebnis', '')
     df_beste = df_beste.sort_values(by=['Score (%)', 'Dauer (s)'], ascending=[False, True])
-    printf(
-        f"Hier eine Übersicht der besten Ergebnisse je Modell (Beste Ergebnisse = höchste Genauigkeit in kürzester Dauer): ")
+
+    printf("Hier eine Übersicht der besten Ergebnisse je Modell:")
     print(df_beste.to_string(index=False))
 
-    # ermittle schnellsten Durchgang je Modell
-    # Ergebnisliste vorbereiten
+    # -----------------
+    # Beste Ergebnisse als Plot
+    # -----------------
+
+    # Ordner prüfen
+    if not os.path.exists(f"Auswertung/{datenname}/"):
+        os.makedirs(f"Auswertung/{datenname}/")
+
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x="Score (%)", y="Modell", data=df_beste, palette="Blues_d")
+    plt.title("Beste Genauigkeit je Modell")
+    plt.tight_layout()
+    plt.savefig(f"Auswertung/{datenname}/Beste_Modelle_{datenname}.png")
+    plt.close()
+
+    # -----------------
+    # Schnellste Durchgänge je Modell
+    # -----------------
+
     schnellste_ergebnisse = []
 
     for key, werte in Ergebnisse.items():
-        # niedrigste Dauer finden (Index 2 ist die Dauer)
-        best = min(werte, key=lambda x: x[2])
-
-        # Dictionary für DataFrame
+        best = min(werte, key=lambda x: x[2])  # schnellste Dauer finden
         eintrag = {
             'Modell': key.replace('_ergebnis', ''),
             'Bester Score (%)': round(best[1], 2),
@@ -158,18 +183,100 @@ def modell_vergleich(Ergebnisse):
         }
         schnellste_ergebnisse.append(eintrag)
 
-    # DataFrame erzeugen
     df_schnell = pd.DataFrame(schnellste_ergebnisse)
-
-    # Nach Score sortieren
     df_schnell = df_schnell.sort_values(by='Dauer (s)', ascending=True)
 
-    # Anzeige
-    print("Hier eine Übersicht über die jeweils schnellsten Durchgänge je Modell.")
+    printf("Hier eine Übersicht über die jeweils schnellsten Durchgänge je Modell.")
     print(df_schnell.to_string(index=False))
-    # Ergebnisse exportieren
-    df_beste.to_csv("Auswertung/" + datenname + "/Auswertung_Beste_Modelle_" + datenname + ".csv", index=False)
-    df_schnell.to_csv("Auswertung/" + datenname + "/" + "Auswertung_Schnellste_Modelle" + datenname + ".csv", index=False)
+
+    # Schnellste Durchgänge als Plot
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x="Dauer (s)", y="Modell", data=df_schnell, palette="Greens_d")
+    plt.title("Schnellster Durchgang je Modell")
+    plt.tight_layout()
+    plt.savefig(f"Auswertung/{datenname}/Schnellste_Modelle_{datenname}.png")
+    plt.close()
+
+    # -----------------
+    # Ergebnisse als CSV speichern
+    # -----------------
+
+    df_beste.to_csv(f"Auswertung/{datenname}/Auswertung_Beste_Modelle_{datenname}.csv", index=False)
+    df_schnell.to_csv(f"Auswertung/{datenname}/Auswertung_Schnellste_Modelle_{datenname}.csv", index=False)
+
+    # -----------------
+    # Ergebnisse in PostgreSQL speichern
+    # -----------------
+
+    # Config einlesen
+    config = configparser.ConfigParser()
+    config.read('db_config.cfg')
+    db_user = config['DEFAULT']['db_user']
+    db_password = b64decode(config['SAVE']['db_password']).decode('utf-8')
+    db_host = config['DEFAULT']['db_host']
+    db_port = config['DEFAULT']['db_port']
+    db_name = config['DEFAULT']['db_name']
+    db_schema = config['DEFAULT']['db_schema']
+
+    # Engine erstellen
+    db_url = f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    engine = sqlalchemy.create_engine(db_url)
+
+    # -----------------
+    # Alle Einzelergebnisse in zentrale Tabelle modell_tests schreiben
+    # -----------------
+
+    aktuelle_zeit = datetime.now()
+    datensaetze = []
+
+    for key, werte in Ergebnisse.items():
+        modellname = key.replace('_ergebnis', '')
+        for durchgang, score, dauer in werte:
+            datensaetze.append({
+                'modellname': modellname,
+                'score': score,
+                'durchgang': durchgang,
+                'dauer': dauer,
+                'datenname': datenname,
+                'laufzeit': aktuelle_zeit
+            })
+
+    df_gesamt = pd.DataFrame(datensaetze)
+
+    # Tabelle modell_tests anlegen (falls noch nicht vorhanden)
+    erstelle_modell_tests_tabelle(engine, db_schema)
+
+    # Ergebnisse anhängen
+    df_gesamt.to_sql(name='modell_tests', con=engine, if_exists='append', index=False, schema=db_schema, method='multi')
+    visualisiere_auswertung(df_beste, df_schnell, datenname)
+    printf("Alle Testergebnisse wurden erfolgreich gespeichert (CSV, PNG, Datenbank).")
+
+
+# DONE Auswertungen visualisieren und speichern
+# DONE Auswertungen zusätzlich in pgSQL speichern
+
+
+def visualisiere_auswertung(df_beste, df_schnell, datenname):
+    # Visualisierung der besten Modelle nach Score
+    plt.figure(figsize=(10, 6))
+    plt.barh(df_beste['Modell'], df_beste['Score (%)'], color='skyblue')
+    plt.xlabel('Score (%)')
+    plt.title('Beste Genauigkeit je Modell')
+    plt.gca().invert_yaxis()  # Höchster Score oben
+    plt.tight_layout()
+    plt.savefig(f"Auswertung/{datenname}/Beste_Modelle_Score.png")
+    plt.close()
+
+    # Visualisierung der schnellsten Modelle nach Dauer
+    plt.figure(figsize=(10, 6))
+    plt.barh(df_schnell['Modell'], df_schnell['Dauer (s)'], color='lightcoral')
+    plt.xlabel('Dauer (s)')
+    plt.title('Schnellste Modelle je Durchgang')
+    plt.gca().invert_yaxis()
+    plt.tight_layout()
+    plt.savefig(f"Auswertung/{datenname}/Schnellste_Modelle_Dauer.png")
+    plt.close()
+
 
 def dataframe_bauen():
     # Dataframe definieren

@@ -3,6 +3,7 @@
 import configparser
 from base64 import b64encode
 
+
 def create_config():
     config = configparser.ConfigParser()
 

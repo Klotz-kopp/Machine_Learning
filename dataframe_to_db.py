@@ -50,16 +50,14 @@ engine = create_engine(db_url)
 
 # TODO iteration über alle Datasets {name : (Import, Target_Spalte)} um vollautomatisch die die Dataframes zu erstellen und in der pg Datenbank speichern.
 # TODO prüfen ob eine Aufteilung auf mehrere Dateien sinnvoll ist.
-# TODO eigenes skript erstellen um die config.cfg zu erstellen
+# DONE eigenes skript erstellen um die config.cfg zu erstellen
 
 datasets = {
-    'malware_detect' : (pd.read_csv('../Datasets/TUANDROMD.csv'), 'Label'),
-    'penguins': (sns.load_dataset('penguins'),'species' ),
-    'brustkrebs' : (sklearn.datasets.load_breast_cancer(), 'Diagnosis'),
-    'iris' : (sklearn.datasets.load_iris(), 'class')
+    'malware_detect': (pd.read_csv('../Datasets/TUANDROMD.csv'), 'Label'),
+    'penguins': (sns.load_dataset('penguins'), 'species'),
+    'brustkrebs': (sklearn.datasets.load_breast_cancer(), 'Diagnosis'),
+    'iris': (sklearn.datasets.load_iris(), 'class')
 }
-
-
 
 
 datenname = 'malware_detect'
@@ -75,9 +73,10 @@ def dataframe_erzeugen():
         if_exists='replace',
         index=False,
         schema=db_schema,
-    method='multi',
-    chunksize=1000
+        method='multi',
+        chunksize=1000
     )
+
 
 def test_train_erzeuge():
     df = pd.read_sql_table(df_name, con=engine, schema=db_schema)
@@ -88,8 +87,8 @@ def test_train_erzeuge():
         if_exists='replace',
         index=False,
         schema=db_schema,
-    method='multi',
-    chunksize=1000
+        method='multi',
+        chunksize=1000
     )
     X_test.to_sql(
         name=datenname + "_X_test",
@@ -97,8 +96,8 @@ def test_train_erzeuge():
         if_exists='replace',
         index=False,
         schema=db_schema,
-    method='multi',
-    chunksize=1000
+        method='multi',
+        chunksize=1000
     )
     y_train.to_sql(
         name=datenname + "_y_train",
@@ -106,8 +105,8 @@ def test_train_erzeuge():
         if_exists='replace',
         index=False,
         schema=db_schema,
-    method='multi',
-    chunksize=1000
+        method='multi',
+        chunksize=1000
     )
     y_test.to_sql(
         name=datenname + "_y_test",
@@ -115,8 +114,8 @@ def test_train_erzeuge():
         if_exists='replace',
         index=False,
         schema=db_schema,
-    method='multi',
-    chunksize=1000
+        method='multi',
+        chunksize=1000
     )
 
 
@@ -137,7 +136,6 @@ def dataframe_bauen():
     printf(f"Dataframe in {dauer:.3f} Sekunden erzeugt.")
     df.info()
     return df
-
 
 
 def dataframe_praeparieren(df):
@@ -201,6 +199,7 @@ def main():
             print("Dataframe Tabelle nicht gefunden.")
     else:
         print("Fehler bei der Datenbankverbindung.")
+
 
 if __name__ == "__main__":
     main()

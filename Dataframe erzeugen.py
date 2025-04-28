@@ -46,7 +46,6 @@ def dataframe_bauen():
     return df
 
 
-
 def dataframe_praeparieren(df):
     start = time.time()  # Startzeitpunkt
     # Features definiert
@@ -58,6 +57,7 @@ def dataframe_praeparieren(df):
     dauer = time.time() - start
     printf(f"Dataframe präpariert in {dauer:.3f} Sekunden.")
     return X_train, X_test, y_train, y_test
+
 
 total_start = time.time()  # Startzeitpunkt
 dataframe_erzeugen()
