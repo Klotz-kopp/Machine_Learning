@@ -21,7 +21,7 @@ from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from datetime import datetime
 
-from funktionen import printf
+from utils import printf
 
 
 class MLModell:
@@ -253,6 +253,7 @@ def modell_vergleich(Ergebnisse):
 
 
 # DONE Auswertungen visualisieren und speichern
+# TODO Auswertungen tabellarisch + Visuell kombiniert speichern (.html?, dynamisch mittels Python?)
 # DONE Auswertungen zusätzlich in pgSQL speichern
 
 

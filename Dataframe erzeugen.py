@@ -1,7 +1,7 @@
 #  Copyright (c) 2025. Diese Python Skripte wurden von mir erstellt und können als Referenz von anderen genutzt und gelesen werden.
 
 import pandas as pd
-from funktionen import printf
+from utils import printf
 import seaborn as sns
 import pickle
 import time
@@ -30,7 +30,7 @@ def test_train_erzeuge():
 def dataframe_bauen():
     # Dataframe definieren
     start = time.time()  # Startzeitpunkt
-    df = pd.read_csv('../Datasets/TUANDROMD.csv')
+    df = pd.read_csv('Datasets/TUANDROMD.csv')
     # Null-Zeilen entfernen
     df = df.dropna()
     if datenname == 'penguins':

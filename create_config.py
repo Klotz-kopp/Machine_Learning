@@ -2,7 +2,7 @@
 # Imports
 import configparser
 from base64 import b64encode
-
+from sqlalchemy import create_engine
 
 def create_config():
     config = configparser.ConfigParser()
@@ -28,3 +28,30 @@ def create_config():
     with open('db_config.cfg', 'w') as configfile:
         config.write(configfile)
     print("Config-Datei erfolgreich erstellt!")
+
+
+def create_dataframe_tabelle(config):
+    db_user = config['DEFAULT']['db_user']
+    db_password = b64decode(config['SAVE']['db_password']).decode('utf-8')
+    db_host = config['DEFAULT']['db_host']
+    db_port = config['DEFAULT']['db_port']
+    db_name = config['DEFAULT']['db_name']
+    db_schema = config['DEFAULT']['db_schema']
+
+    db_url = f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    engine = create_engine(db_url)
+
+    with engine.begin() as conn:
+        conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {db_schema}.dataframe (
+                dataset_name TEXT PRIMARY KEY,
+                beschreibung TEXT,
+                df_tabelle TEXT,
+                x_test_tabelle TEXT,
+                x_train_tabelle TEXT,
+                y_test_tabelle TEXT,
+                y_train_tabelle TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        print("Tabelle 'dataframe' wurde erstellt (falls nicht vorhanden).")
