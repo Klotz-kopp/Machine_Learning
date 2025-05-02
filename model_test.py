@@ -24,6 +24,13 @@ from datetime import datetime
 from utils import printf
 
 
+# DONE Auswertungen visualisieren und speichern
+# DONE Auswertungen zusätzlich in pgSQL speichern
+# TODO Auswertungen tabellarisch + Visuell kombiniert speichern (.html?, dynamisch mittels Python?)
+# TODO Lade alle verfügbaren dataframes aus der Tabelle dataframe und iteriere über all diese dataframes
+# TODO trennen nach Modell Test, Auswertung, Ausgabe / speichern der Ergebnisse
+
+
 class MLModell:
     def __init__(self, name, model_func):
         self.name = name
@@ -104,11 +111,12 @@ def main():
 
     # Optional: nach Modell und Durchgang sortieren
     df_alle = df_alle.sort_values(by=['Modell', 'Durchgang'])
-    ordner = f"Auswertung/{datenname}/"
+    ordner = os.path.join("Auswertung", datenname)
+    csv_pfad = os.path.join(ordner, f"{datenname}_Modell_Ergebnisse.csv")
 
     if not os.path.exists(ordner):
-        os.makedirs(ordner)  # Erstellt alle benötigten Unterordner
-    df_alle.to_csv("Auswertung/" + datenname + "/" + datenname + "_Modell_Ergebnisse.csv", index=False)
+        os.makedirs(ordner)
+    df_alle.to_csv(csv_pfad, index=False)
     # Anzeige
     print(df_alle.to_string(index=False))
 
@@ -250,11 +258,6 @@ def modell_vergleich(Ergebnisse):
     df_gesamt.to_sql(name='modell_tests', con=engine, if_exists='append', index=False, schema=db_schema, method='multi')
     visualisiere_auswertung(df_beste, df_schnell, datenname)
     printf("Alle Testergebnisse wurden erfolgreich gespeichert (CSV, PNG, Datenbank).")
-
-
-# DONE Auswertungen visualisieren und speichern
-# TODO Auswertungen tabellarisch + Visuell kombiniert speichern (.html?, dynamisch mittels Python?)
-# DONE Auswertungen zusätzlich in pgSQL speichern
 
 
 def visualisiere_auswertung(df_beste, df_schnell, datenname):

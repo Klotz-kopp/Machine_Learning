@@ -1,6 +1,7 @@
 #  Copyright (c) 2025. Diese Python Skripte wurden von mir erstellt und können als Referenz von anderen genutzt und gelesen werden.
 import db
 
+
 def main():
     menu()
     pass

@@ -7,6 +7,7 @@ import psycopg2
 from base64 import b64decode
 from sqlalchemy import create_engine
 
+
 class DatenbankVerbindung:
     def __init__(self, config_pfad='db_config.cfg'):
         self.config = configparser.ConfigParser()
@@ -38,18 +39,14 @@ class DatenbankVerbindung:
         db_url = f"postgresql+psycopg2://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
         self.engine = create_engine(db_url)
 
-
     def get_engine(self):
         return self.engine
-
 
     def get_schema(self):
         return self.db_schema
 
-
     def get_config(self):
         return self.config
-
 
     def write_dataframe(self, df, name, replace=True):
         """Hilfsfunktion zum Schreiben eines DataFrames in die Datenbank."""
@@ -84,7 +81,6 @@ class DatenbankVerbindung:
 
         print(f"Metadaten für '{metadaten['dataset_name']}' gespeichert (oder übersprungen, falls bereits vorhanden).")
 
-
     def test_verbindung(self):
         """Testet, ob eine Verbindung zur PostgreSQL-Datenbank aufgebaut werden kann."""
         try:
@@ -99,7 +95,6 @@ class DatenbankVerbindung:
         except psycopg2.Error as e:
             print(f"Postgres-Verbindungsfehler: {e}")
             return False
-
 
     def test_tabelle(self, tabellenname: str):
         """Prüft, ob eine Tabelle im angegebenen Schema existiert."""
