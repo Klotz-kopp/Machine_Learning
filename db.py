@@ -6,6 +6,7 @@ import sys
 import psycopg2
 from base64 import b64decode
 from sqlalchemy import create_engine
+import pandas as pd
 
 
 class DatenbankVerbindung:
@@ -115,3 +116,19 @@ class DatenbankVerbindung:
         except Exception as e:
             print(f"Fehler bei test_tabelle('{tabellenname}'): {e}")
             return False
+
+    def lade_dataset_metadaten(self):
+        """
+        Gibt eine Liste aller Datasets zurück, wie sie in der 'dataframe'-Tabelle gespeichert sind.
+        """
+        with self.engine.connect() as conn:
+            query = f"SELECT dataset_name, beschreibung, df_tabelle, x_test_tabelle, x_train_tabelle, y_test_tabelle, y_train_tabelle FROM {self.db_schema}.dataframe;"
+            result = conn.execute(query)
+            return [dict(row._mapping) for row in result]  # SQLAlchemy RowProxy → dict
+
+    def lade_modelltestergebnisse(self) -> pd.DataFrame:
+        """
+        Lädt alle Modell-Test-Ergebnisse aus der Tabelle 'modell_tests' und gibt sie als DataFrame zurück.
+        """
+        query = f"SELECT * FROM {self.db_schema}.modell_tests"
+        return pd.read_sql_query(query, con=self.engine)

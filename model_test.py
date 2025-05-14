@@ -1,19 +1,14 @@
 #  Copyright (c) 2025. Diese Python Skripte wurden von mir erstellt und können als Referenz von anderen genutzt und gelesen werden.
 import os
-import pickle
 import time
 
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import sqlalchemy
-import configparser
-from base64 import b64decode
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
@@ -22,12 +17,12 @@ from sklearn.tree import DecisionTreeClassifier
 from datetime import datetime
 
 from utils import printf
-
+from db import DatenbankVerbindung
 
 # DONE Auswertungen visualisieren und speichern
 # DONE Auswertungen zusätzlich in pgSQL speichern
 # TODO Auswertungen tabellarisch + Visuell kombiniert speichern (.html?, dynamisch mittels Python?)
-# TODO Lade alle verfügbaren dataframes aus der Tabelle dataframe und iteriere über all diese dataframes
+# DONE Lade alle verfügbaren dataframes aus der Tabelle dataframe und iteriere über all diese dataframes
 # TODO trennen nach Modell Test, Auswertung, Ausgabe / speichern der Ergebnisse
 
 
@@ -60,67 +55,63 @@ Modelle = [
     MLModell('MLPClassifier', lambda i: MLPClassifier(max_iter=1000 * i))
 ]
 
-datenname = 'malware_detect'
+# datenname = 'malware_detect'
+db = DatenbankVerbindung()
+metadaten_liste = db.lade_dataset_metadaten()
 
 
 def main():
-    # Dictionary zum Speichern der Ergebnisse: Key = Modellname, Value = Liste der Scores
-    Ergebnisse = {modell.name + '_ergebnis': [] for modell in Modelle}
-    if os.path.exists(datenname + "_df.pkl"):
-        with open(datenname + "_df.pkl", "rb") as f:
-            df = pickle.load(f)
-    else:
-        df = dataframe_bauen()
-        with open(datenname + "_df.pkl", "wb") as f:
-            pickle.dump(df, f)
-    if os.path.exists(datenname + "_split.pkl"):
-        with open(datenname + "_split.pkl", "rb") as f:
-            X_train, X_test, y_train, y_test = pickle.load(f)
-    else:
-        X_train, X_test, y_train, y_test = dataframe_praeparieren(df)
-        with open(datenname + "_split.pkl", "wb") as f:  # <- RICHTIG
-            pickle.dump((X_train, X_test, y_train, y_test), f)
+    engine = db.get_engine()
+    schema = db.get_schema()
+    for eintrag in metadaten_liste:
+        datenname = eintrag['dataset_name']
+        X_train = pd.read_sql_table(eintrag['x_train_tabelle'], con=engine, schema=schema)
+        X_test = pd.read_sql_table(eintrag['x_test_tabelle'], con=engine, schema=schema)
+        y_train = pd.read_sql_table(eintrag['y_train_tabelle'], con=engine, schema=schema)
+        y_test = pd.read_sql_table(eintrag['y_test_tabelle'], con=engine, schema=schema)
+        # Dictionary zum Speichern der Ergebnisse: Key = Modellname, Value = Liste der Scores
+        Ergebnisse = {modell.name + '_ergebnis': [] for modell in Modelle}
+        printf(f"\n=== Starte Modellvergleich für Dataset: {datenname} ===")
+        for i in range(1, 11):
+            for modell in Modelle:
+                start = time.time()  # Startzeitpunkt
+                modell.train(X_train, y_train, i)
+                score = modell.testen(X_test, y_test, i)
+                dauer = time.time() - start  # Differenz = Laufzeit in Sekunden
 
-    for i in range(1, 11):
-        for modell in Modelle:
-            start = time.time()  # Startzeitpunkt
-            modell.train(X_train, y_train, i)
-            score = modell.testen(X_test, y_test, i)
-            dauer = time.time() - start  # Differenz = Laufzeit in Sekunden
+                # printf(f"Durchgang {i} - {modell.name}: {score:.2f} % (Dauer: {dauer:.3f} s)")
 
-            # printf(f"Durchgang {i} - {modell.name}: {score:.2f} % (Dauer: {dauer:.3f} s)")
-
-            key = modell.name + '_ergebnis'
-            Ergebnisse[key].append((i, score, dauer))
-        printf(f"Durchgang {i} abgeschlossen.")
+                key = modell.name + '_ergebnis'
+                Ergebnisse[key].append((i, score, dauer))
+            printf(f"Durchgang {i} abgeschlossen.")
     # Dict → lange Liste von Zeilen für DataFrame vorbereiten
-    alle_ergebnisse = []
+        alle_ergebnisse = []
 
-    for key, werte in Ergebnisse.items():
-        modell_name = key.replace('_ergebnis', '')
-        for durchgang, score, dauer in werte:
-            alle_ergebnisse.append({
-                'Modell': modell_name,
-                'Durchgang': durchgang,
-                'Score (%)': round(score, 2),
-                'Dauer (s)': round(dauer, 3)
-            })
+        for key, werte in Ergebnisse.items():
+            modell_name = key.replace('_ergebnis', '')
+            for durchgang, score, dauer in werte:
+                alle_ergebnisse.append({
+                    'Modell': modell_name,
+                    'Durchgang': durchgang,
+                    'Score (%)': round(score, 2),
+                    'Dauer (s)': round(dauer, 3)
+                })
 
-    # DataFrame erstellen
-    df_alle = pd.DataFrame(alle_ergebnisse)
+        # DataFrame erstellen
+        df_alle = pd.DataFrame(alle_ergebnisse)
 
-    # Optional: nach Modell und Durchgang sortieren
-    df_alle = df_alle.sort_values(by=['Modell', 'Durchgang'])
-    ordner = os.path.join("Auswertung", datenname)
-    csv_pfad = os.path.join(ordner, f"{datenname}_Modell_Ergebnisse.csv")
+        # Optional: nach Modell und Durchgang sortieren
+        df_alle = df_alle.sort_values(by=['Modell', 'Durchgang'])
+        ordner = os.path.join("Auswertung", datenname)
+        csv_pfad = os.path.join(ordner, f"{datenname}_Modell_Ergebnisse.csv")
 
-    if not os.path.exists(ordner):
-        os.makedirs(ordner)
-    df_alle.to_csv(csv_pfad, index=False)
-    # Anzeige
-    print(df_alle.to_string(index=False))
+        if not os.path.exists(ordner):
+            os.makedirs(ordner)
+        df_alle.to_csv(csv_pfad, index=False)
+        # Anzeige
+        print(df_alle.to_string(index=False))
 
-    modell_vergleich(Ergebnisse)
+        modell_vergleich(Ergebnisse, datenname)
 
 
 def erstelle_modell_tests_tabelle(engine, db_schema):
@@ -140,7 +131,7 @@ def erstelle_modell_tests_tabelle(engine, db_schema):
     print("Tabelle modell_tests geprüft/erstellt.")
 
 
-def modell_vergleich(Ergebnisse):
+def modell_vergleich(Ergebnisse, datenname):
     # ermittle höchste Genauigkeit je Modell
     # Ergebnisliste vorbereiten
     beste_ergebnisse = {}
@@ -216,20 +207,8 @@ def modell_vergleich(Ergebnisse):
     # Ergebnisse in PostgreSQL speichern
     # -----------------
 
-    # Config einlesen
-    config = configparser.ConfigParser()
-    config.read('db_config.cfg')
-    db_user = config['DEFAULT']['db_user']
-    db_password = b64decode(config['SAVE']['db_password']).decode('utf-8')
-    db_host = config['DEFAULT']['db_host']
-    db_port = config['DEFAULT']['db_port']
-    db_name = config['DEFAULT']['db_name']
-    db_schema = config['DEFAULT']['db_schema']
-
-    # Engine erstellen
-    db_url = f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-    engine = sqlalchemy.create_engine(db_url)
-
+    engine = db.get_engine()
+    schema = db.get_schema()
     # -----------------
     # Alle Einzelergebnisse in zentrale Tabelle modell_tests schreiben
     # -----------------
@@ -252,10 +231,10 @@ def modell_vergleich(Ergebnisse):
     df_gesamt = pd.DataFrame(datensaetze)
 
     # Tabelle modell_tests anlegen (falls noch nicht vorhanden)
-    erstelle_modell_tests_tabelle(engine, db_schema)
+    erstelle_modell_tests_tabelle(engine, schema)
 
     # Ergebnisse anhängen
-    df_gesamt.to_sql(name='modell_tests', con=engine, if_exists='append', index=False, schema=db_schema, method='multi')
+    df_gesamt.to_sql(name='modell_tests', con=engine, if_exists='append', index=False, schema=schema, method='multi')
     visualisiere_auswertung(df_beste, df_schnell, datenname)
     printf("Alle Testergebnisse wurden erfolgreich gespeichert (CSV, PNG, Datenbank).")
 
@@ -280,30 +259,6 @@ def visualisiere_auswertung(df_beste, df_schnell, datenname):
     plt.tight_layout()
     plt.savefig(f"Auswertung/{datenname}/Schnellste_Modelle_Dauer.png")
     plt.close()
-
-
-def dataframe_bauen():
-    # Dataframe definieren
-    df = sns.load_dataset("penguins")
-    # Null-Zeilen entfernen
-    df = df.dropna()
-    # umwandeln von nicht nummerischen Werten in nummerische Werte
-    # Geschlecht männlich in 0 und Geschlecht weiblich in 1 umwandeln
-    df['sex'] = df['sex'].map({'Male': 0, 'Female': 1})
-    # Umwandeln der Inselnamen in Nummern 1 bis 3
-    df['island'] = df['island'].map({'Torgersen': 1, 'Biscoe': 2, 'Dream': 3})
-    # df['species'] = df['species'].map({'Adelie': 1, 'Chinstrap': 2, 'Gentoo': 3})
-    return df
-
-
-def dataframe_praeparieren(df):
-    # Features definiert
-    X = df.drop(["species"], axis=1)
-    # Labels definiert
-    y = df["species"]
-    # Dataframe in Test und Trainingsdaten aufgeteilt
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=119)
-    return X_train, X_test, y_train, y_test
 
 
 if __name__ == "__main__":
