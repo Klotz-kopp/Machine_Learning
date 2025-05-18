@@ -17,3 +17,10 @@ def main():
         auswertung.plot_schnellste_durchlaeufe(gruppierung)
         auswertung.ranking_plot(gruppierung)
         auswertung.generiere_html_report(gruppierung)
+
+
+# -------------------------------
+# Einstiegspunkt
+# -------------------------------
+if __name__ == "__main__":
+    main()

@@ -2,6 +2,7 @@
 import re
 import os
 from time import time
+from functools import wraps
 
 Farben = {
     'Schwarz': '\033[30m',
@@ -40,6 +41,7 @@ def pruefe_und_erstelle_ordner(pfad: str):
 
 def zeit_messen(func):
     """Decorator, der die Ausführungszeit einer Funktion misst."""
+    @wraps(func)
     def wrapper(*args, **kwargs):
         start = time()
         result = func(*args, **kwargs)

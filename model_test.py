@@ -129,6 +129,7 @@ def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
         if_exists='append',
         index=False,
         schema=schema,
+        chunksize=1000,
         method='multi'
     )
 

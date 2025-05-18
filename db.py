@@ -44,11 +44,11 @@ class DatenbankVerbindung:
         # Engine erzeugen
         db_url = f"postgresql+psycopg2://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
         self.engine = create_engine(db_url)
-
+    @property
     def get_engine(self):
         """Gibt die SQLAlchemy Engine zurück."""
         return self.engine
-
+    @property
     def get_schema(self):
         """Gibt das verwendete Schema zurück."""
         return self.db_schema

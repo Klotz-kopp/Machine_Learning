@@ -21,6 +21,7 @@ class DatasetPipeline:
     """
     Verarbeitet ein Dataset: importiert, bereinigt, splittet, speichert es in die Datenbank und pflegt Metadaten.
     """
+
     def __init__(self, name, df, zielspalte, beschreibung, db: DatenbankVerbindung):
         self.name = name
         self.df = df.dropna()
@@ -36,12 +37,34 @@ class DatasetPipeline:
             self.df['island'] = self.df['island'].map({'Torgersen': 1, 'Biscoe': 2, 'Dream': 3})
             self.df['species'] = self.df['species'].map({'Adelie': 1, 'Chinstrap': 2, 'Gentoo': 3})
 
+    def _validiere_daten(self) -> bool:
+        """Prüft, ob die Zielspalte existiert und das DataFrame nicht leer ist."""
+        if self.df.empty:
+            printf(f"⚠️  Dataset '{self.name}' ist leer – wird übersprungen.")
+            return False
+
+        if self.zielspalte not in self.df.columns:
+            printf(f"❌ Fehler: Zielspalte '{self.zielspalte}' fehlt in Dataset '{self.name}'. "
+                   f"Verfügbare Spalten: {list(self.df.columns)}")
+            return False
+
+        return True
+
     def split_and_store(self):
         """Splitte DataFrame in Trainings-/Testdaten und speichere alle Tabellen in die Datenbank."""
+        if not self._validiere_daten():
+            return
+
         start = time.time()
         X = self.df.drop(columns=[self.zielspalte])
         y = self.df[self.zielspalte]
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=119)
+
+        # Optional: Stratify, wenn Klassifikation
+        stratify = y if y.nunique() <= 20 else None  # Heuristik
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=119, stratify=stratify
+        )
 
         self.db.write_dataframe(self.df, self.df_name)
         self.db.write_dataframe(X_train, self.name + '_X_train')
@@ -50,7 +73,7 @@ class DatasetPipeline:
         self.db.write_dataframe(y_test, self.name + '_y_test')
 
         dauer = time.time() - start
-        printf(f"{self.name}: Split & Save abgeschlossen in {dauer:.2f} Sekunden.")
+        printf(f"✅ {self.name}: Split & Save abgeschlossen in {dauer:.2f} Sekunden.")
 
     def schreibe_metadaten(self):
         """Speichert Metadaten zur Datenstruktur in einer zentralen Tabelle."""
@@ -64,6 +87,7 @@ class DatasetPipeline:
             'y_train_tabelle': self.name + '_y_train'
         }
         self.db.schreibe_metadaten(meta)
+
 
 
 def main():
