@@ -3,7 +3,7 @@ import re
 import os
 from time import time
 from functools import wraps
-import logging
+import logging # Import Logging
 
 Farben = {
     'Schwarz': '\033[30m',
@@ -34,26 +34,39 @@ def printf(*args, sep=' ', end='\n'):
     print(sep.join(output), end=end)
 
 
+
 def pruefe_und_erstelle_ordner(pfad: str):
     """Erstellt den Ordner, falls er noch nicht existiert."""
-    if not os.path.exists(pfad):
-        os.makedirs(pfad)
-        logging.info(f"Ordner erstellt: {pfad}")
+    try:
+        if not os.path.exists(pfad):
+            os.makedirs(pfad)
+            logging.info(f"Ordner erstellt: {pfad}")
+    except Exception as e:
+        print(f"Fehler beim Erstellen des Ordners '{pfad}': {e}")
+        logging.error(f"Fehler beim Erstellen des Ordners '{pfad}': {e}")
+        raise  # решаем, что ошибка при создании директории - критическая
+
 
 
 def zeit_messen(func):
-    """Decorator, der die Ausführungszeit einer Funktion misst."""
+    """Decorator, der die Ausführungszeit einer Funktion misst und loggt."""
     @wraps(func)
     def wrapper(*args, **kwargs):
         start = time()
-        result = func(*args, **kwargs)
-        dauer = time() - start
-        if dauer > 60:
-            minuten, sekunden = zeit_umrechnen(dauer)
-            logging.info(f"Funktion '{func.__name__}' dauerte {minuten} Minuten und {sekunden:.3f} Sekunden.")
-        else:
-            logging.info(f"Funktion '{func.__name__}' dauerte {dauer:.3f} Sekunden.")
-        return result
+        try:
+            result = func(*args, **kwargs)
+            dauer = time() - start
+            if dauer > 60:
+                minuten, sekunden = zeit_umrechnen(dauer)
+                logging.info(f"Funktion '{func.__name__}' dauerte {minuten} Minuten und {sekunden:.3f} Sekunden.")
+            else:
+                logging.info(f"Funktion '{func.__name__}' dauerte {dauer:.3f} Sekunden.")
+            return result
+        except Exception as e:
+            logging.error(f"Fehler bei der Ausführung von Funktion '{func.__name__}': {e}")
+            print(f"Fehler bei der Ausführung von Funktion '{func.__name__}': {e}")
+            raise  # Re-raise, damit der Aufrufer die Exception auch sieht
+
     return wrapper
 
 
