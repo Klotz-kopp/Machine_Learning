@@ -1,29 +1,19 @@
-#  Copyright (c) 2025. Diese Python Skripte wurden von mir erstellt und können als Referenz von anderen genutzt und gelesen werden.
-from db import DatenbankVerbindung
-import pandas as pd
+import dataframe_to_db
+import model_test
+from auswertung import Auswertung
+from utils import zeit_messen  # <-- WICHTIG
 
-db = DatenbankVerbindung()
-df = db.lade_modelltestergebnisse()
-df = df.drop(columns='id')
-df['laufzeit'] = pd.to_datetime(df['laufzeit'])
 
-modelname = []
-datenname = []
-modellnamen = df['modellname'].unique().tolist()
-datennamen = df['datenname'].unique().tolist()
-
+@zeit_messen
 def main():
-    menu()
-    pass
+    dataframe_to_db.main()
+    model_test.main()
 
+    auswertung = Auswertung()  # <-- Instanz erzeugen
 
-def menu():
-    # Dataframe (Vorbereitungen)
-    # TODO Ausgabe der hardcodierten Datasets
-    # TODO vorhandene Dataframes abfragen
-    # TODO Dataframe erzeugen
-    # Modelle testen
-    # TODO Modelltest mit einem Dataframe starten
-    # TODO Modelltest mit allen Dataframes starten
-    # TODO Auswertungen anzeigen
-    pass
+    for gruppierung in ["modellname", "datenname"]:
+        auswertung.speichere_gruppierte_ergebnisse_csv(gruppierung)
+        auswertung.plot_beste_scores(gruppierung)
+        auswertung.plot_schnellste_durchlaeufe(gruppierung)
+        auswertung.ranking_plot(gruppierung)
+        auswertung.generiere_html_report(gruppierung)

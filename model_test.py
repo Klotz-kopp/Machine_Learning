@@ -17,11 +17,13 @@ from datetime import datetime
 
 from db import DatenbankVerbindung
 from utils import printf
-
+from utils import zeit_messen
 
 # -------------------------------
 # Klasse für ein ML-Modell mit dynamischer Parametrisierung (z.B. Nachbarn, max_iter etc.)
 # -------------------------------
+
+
 class MLModell:
     def __init__(self, name, model_func):
         self.name = name
@@ -57,6 +59,7 @@ Modelle = [
 # -------------------------------
 # Hauptfunktion: Trainings- und Testlauf für alle Datasets und Modelle
 # -------------------------------
+@zeit_messen
 def main():
     db = DatenbankVerbindung()
     engine = db.get_engine()
@@ -76,7 +79,7 @@ def main():
         # Initialisiere leeres Ergebnis-Dictionary für dieses Dataset
         Ergebnisse = {modell.name + '_ergebnis': [] for modell in Modelle}
 
-        # 10 Durchläufe pro Modell mit steigender Komplexität (z. B. Nachbarn, max_iter)
+        # 10 Durchläufe pro Modell mit steigender Komplexität (z.B. Nachbarn, max_iter)
         for i in range(1, 11):
             for modell in Modelle:
                 start = time.time()
@@ -93,6 +96,7 @@ def main():
 # -------------------------------
 # Speichert alle Testergebnisse (je Modell, Durchgang) in PostgreSQL-Tabelle `modell_tests`
 # -------------------------------
+@zeit_messen
 def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
     engine = db.get_engine()
     schema = db.get_schema()

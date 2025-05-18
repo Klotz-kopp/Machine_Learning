@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from db import DatenbankVerbindung
+from utils import pruefe_und_erstelle_ordner
 
 
 class Auswertung:
@@ -33,7 +34,7 @@ class Auswertung:
             df_gruppe = df_gruppe.sort_values(by='score', ascending=False)
 
             zielordner = os.path.join(ordner, gruppe)
-            os.makedirs(zielordner, exist_ok=True)
+            pruefe_und_erstelle_ordner(zielordner)
 
             pfad = os.path.join(zielordner, f"{gruppe}_Ergebnisse.csv")
             df_gruppe.to_csv(pfad, index=False)
@@ -56,7 +57,7 @@ class Auswertung:
         plt.legend(title=hue_col.capitalize())
 
         zielordner = os.path.join(ordner, gruppiert_nach)
-        os.makedirs(zielordner, exist_ok=True)
+        pruefe_und_erstelle_ordner(zielordner)
         pfad = os.path.join(zielordner, f"{gruppiert_nach}_beste_scores.png")
 
         self._speichere_plot(pfad)
@@ -78,7 +79,7 @@ class Auswertung:
         plt.legend(title=hue_col.capitalize())
 
         zielordner = os.path.join(ordner, gruppiert_nach)
-        os.makedirs(zielordner, exist_ok=True)
+        pruefe_und_erstelle_ordner(zielordner)
         pfad = os.path.join(zielordner, f"{gruppiert_nach}_schnellste_durchlaeufe.png")
 
         self._speichere_plot(pfad)
@@ -98,7 +99,7 @@ class Auswertung:
         plt.ylabel(gruppiert_nach.capitalize())
 
         zielordner = os.path.join(ordner, gruppiert_nach)
-        os.makedirs(zielordner, exist_ok=True)
+        pruefe_und_erstelle_ordner(zielordner)
         pfad = os.path.join(zielordner, f"{gruppiert_nach}_ranking_{wert}.png")
 
         self._speichere_plot(pfad)

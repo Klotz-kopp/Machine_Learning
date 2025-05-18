@@ -1,5 +1,7 @@
 #  Copyright (c) 2025. Diese Python Skripte wurden von mir erstellt und können als Referenz von anderen genutzt und gelesen werden.
 import re
+import os
+from time import time
 
 Farben = {
     'Schwarz': '\033[30m',
@@ -28,3 +30,30 @@ def printf(*args, sep=' ', end='\n'):
     output = [einfärben(str(arg)) for arg in args]
 
     print(sep.join(output), end=end)
+
+
+def pruefe_und_erstelle_ordner(pfad: str):
+    """Erstellt den Ordner, falls er noch nicht existiert."""
+    if not os.path.exists(pfad):
+        os.makedirs(pfad)
+
+
+def zeit_messen(func):
+    """Decorator, der die Ausführungszeit einer Funktion misst."""
+    def wrapper(*args, **kwargs):
+        start = time()
+        result = func(*args, **kwargs)
+        dauer = time() - start
+        if dauer > 60:
+            minuten, sekunden = zeit_umrechnen(dauer)
+            printf(f"Funktion '{func.__name__}' dauerte {minuten} Minuten und {sekunden:.3f} Sekunden.")
+        else:
+            printf(f"Funktion '{func.__name__}' dauerte {dauer:.3f} Sekunden.")
+        return result
+    return wrapper
+
+
+def zeit_umrechnen(dauer):
+    minuten = int(dauer // 60)
+    sekunden = dauer % 60
+    return minuten, sekunden

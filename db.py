@@ -10,6 +10,11 @@ import pandas as pd
 
 
 class DatenbankVerbindung:
+    """
+        Klasse zur Verwaltung der Verbindung zur PostgreSQL-Datenbank und zur Interaktion mit ihr.
+        Liest Konfigurationsdaten aus einer .cfg-Datei, stellt die Verbindung her und stellt Hilfsmethoden bereit.
+    """
+
     def __init__(self, config_pfad='db_config.cfg'):
         self.config = configparser.ConfigParser()
         files_read = self.config.read(config_pfad)
@@ -41,16 +46,25 @@ class DatenbankVerbindung:
         self.engine = create_engine(db_url)
 
     def get_engine(self):
+        """Gibt die SQLAlchemy Engine zurück."""
         return self.engine
 
     def get_schema(self):
+        """Gibt das verwendete Schema zurück."""
         return self.db_schema
 
     def get_config(self):
+        """Gibt die eingelesene Konfiguration zurück."""
         return self.config
 
     def write_dataframe(self, df, name, replace=True):
-        """Hilfsfunktion zum Schreiben eines DataFrames in die Datenbank."""
+        """
+        Schreibt ein DataFrame in die PostgreSQL-Datenbank.
+
+        :param df: Das zu speichernde DataFrame
+        :param name: Tabellenname
+        :param replace: Ob vorhandene Tabelle ersetzt wird (True) oder angehängt wird (False)
+        """
         df.to_sql(
             name=name,
             con=self.engine,
@@ -97,15 +111,19 @@ class DatenbankVerbindung:
             print(f"Postgres-Verbindungsfehler: {e}")
             return False
 
-    def test_tabelle(self, tabellenname: str):
-        """Prüft, ob eine Tabelle im angegebenen Schema existiert."""
+    def test_tabelle(self, tabellenname: str) -> bool:
+        """
+        Prüft, ob eine Tabelle im aktuellen Schema existiert.
+        :param tabellenname: Name der zu prüfenden Tabelle
+        :return: True/False
+        """
         try:
             with psycopg2.connect(
-                    host=self.db_host,
-                    database=self.db_name,
-                    user=self.db_user,
-                    password=self.db_password,
-                    port=self.db_port
+                host=self.db_host,
+                database=self.db_name,
+                user=self.db_user,
+                password=self.db_password,
+                port=self.db_port
             ) as conn:
                 with conn.cursor() as cur:
                     cur.execute(
@@ -119,7 +137,8 @@ class DatenbankVerbindung:
 
     def lade_dataset_metadaten(self):
         """
-        Gibt eine Liste aller Datasets zurück, wie sie in der 'dataframe'-Tabelle gespeichert sind.
+        Lädt alle Datensätze (Metadaten) aus der Tabelle 'dataframe'.
+        :return: Liste von Dictionaries
         """
         with self.engine.connect() as conn:
             query = f"SELECT dataset_name, beschreibung, df_tabelle, x_test_tabelle, x_train_tabelle, y_test_tabelle, y_train_tabelle FROM {self.db_schema}.dataframe;"
