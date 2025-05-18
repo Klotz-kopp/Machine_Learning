@@ -3,6 +3,7 @@ import re
 import os
 from time import time
 from functools import wraps
+import logging
 
 Farben = {
     'Schwarz': '\033[30m',
@@ -37,6 +38,7 @@ def pruefe_und_erstelle_ordner(pfad: str):
     """Erstellt den Ordner, falls er noch nicht existiert."""
     if not os.path.exists(pfad):
         os.makedirs(pfad)
+        logging.info(f"Ordner erstellt: {pfad}")
 
 
 def zeit_messen(func):
@@ -48,9 +50,9 @@ def zeit_messen(func):
         dauer = time() - start
         if dauer > 60:
             minuten, sekunden = zeit_umrechnen(dauer)
-            printf(f"Funktion '{func.__name__}' dauerte {minuten} Minuten und {sekunden:.3f} Sekunden.")
+            logging.info(f"Funktion '{func.__name__}' dauerte {minuten} Minuten und {sekunden:.3f} Sekunden.")
         else:
-            printf(f"Funktion '{func.__name__}' dauerte {dauer:.3f} Sekunden.")
+            logging.info(f"Funktion '{func.__name__}' dauerte {dauer:.3f} Sekunden.")
         return result
     return wrapper
 

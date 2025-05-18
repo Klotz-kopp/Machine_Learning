@@ -4,6 +4,7 @@
 # Ergebnisse werden in der PostgreSQL-Datenbank gespeichert – Auswertungen erfolgen in separatem Modul.
 
 import time
+import logging
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -16,7 +17,6 @@ from sklearn.tree import DecisionTreeClassifier
 from datetime import datetime
 
 from db import DatenbankVerbindung
-from utils import printf
 from utils import zeit_messen
 
 # -------------------------------
@@ -68,13 +68,17 @@ def main():
 
     for eintrag in metadaten_liste:
         datenname = eintrag['dataset_name']
-        printf(f"\n=== Starte Modellvergleich für Dataset: {datenname} ===")
+        logging.info(f"=== Starte Modellvergleich für Dataset: {datenname} ===") # Logging
 
         # Lade Trainings- und Testdaten aus der Datenbank
-        X_train = pd.read_sql_table(eintrag['x_train_tabelle'], con=engine, schema=schema)
-        X_test = pd.read_sql_table(eintrag['x_test_tabelle'], con=engine, schema=schema)
-        y_train = pd.read_sql_table(eintrag['y_train_tabelle'], con=engine, schema=schema)
-        y_test = pd.read_sql_table(eintrag['y_test_tabelle'], con=engine, schema=schema)
+        try:
+            X_train = pd.read_sql_table(eintrag['x_train_tabelle'], con=engine, schema=schema)
+            X_test = pd.read_sql_table(eintrag['x_test_tabelle'], con=engine, schema=schema)
+            y_train = pd.read_sql_table(eintrag['y_train_tabelle'], con=engine, schema=schema)
+            y_test = pd.read_sql_table(eintrag['y_test_tabelle'], con=engine, schema=schema)
+        except Exception as e:
+            logging.error(f"Fehler beim Laden der Daten für Dataset {datenname}: {e}")
+            continue  # Gehe zum nächsten Dataset über
 
         # Initialisiere leeres Ergebnis-Dictionary für dieses Dataset
         Ergebnisse = {modell.name + '_ergebnis': [] for modell in Modelle}
@@ -83,15 +87,21 @@ def main():
         for i in range(1, 11):
             for modell in Modelle:
                 start = time.time()
-                modell.train(X_train, y_train, i)
-                score = modell.testen(X_test, y_test, i)
+                try:
+                    modell.train(X_train, y_train, i)
+                    score = modell.testen(X_test, y_test, i)
+                except Exception as e:
+                    logging.error(f"Fehler beim Training/Testen von Modell {modell.name} für Dataset {datenname}, Durchgang {i}: {e}")
+                    score = 0  # Setze einen Standardwert, um den Durchlauf fortzusetzen
                 dauer = time.time() - start
                 Ergebnisse[modell.name + '_ergebnis'].append((i, score, dauer))
-            printf(f"Durchgang {i} abgeschlossen.")
+            logging.info(f"Durchgang {i} abgeschlossen.")
 
         # Ergebnisse in zentrale Tabelle schreiben
-        speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db)
-
+        try:
+            speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db)
+        except Exception as e:
+            logging.error(f"Fehler beim Speichern der Ergebnisse für Dataset {datenname}: {e}")
 
 # -------------------------------
 # Speichert alle Testergebnisse (je Modell, Durchgang) in PostgreSQL-Tabelle `modell_tests`
@@ -102,7 +112,11 @@ def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
     schema = db.get_schema()
 
     # Sicherstellen, dass die Tabelle existiert
-    erstelle_modell_tests_tabelle(engine, schema)
+    try:
+        erstelle_modell_tests_tabelle(engine, schema)
+    except Exception as e:
+        logging.error(f"Fehler beim Erstellen der Tabelle 'modell_tests': {e}")
+        raise  # Re-raise, damit die übergeordnete Funktion es auch mitbekommt
 
     # Alle Ergebnisse in flache Liste für DataFrame umwandeln
     aktuelle_zeit = datetime.now()
@@ -123,17 +137,20 @@ def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
     df_gesamt = pd.DataFrame(datensaetze)
 
     # In Datenbank anhängen
-    df_gesamt.to_sql(
-        name='modell_tests',
-        con=engine,
-        if_exists='append',
-        index=False,
-        schema=schema,
-        chunksize=1000,
-        method='multi'
-    )
-
-    printf(f"Testergebnisse für '{datenname}' gespeichert.")
+    try:
+        df_gesamt.to_sql(
+            name='modell_tests',
+            con=engine,
+            if_exists='append',
+            index=False,
+            schema=schema,
+            chunksize=1000,
+            method='multi'
+        )
+        logging.info(f"Testergebnisse für '{datenname}' gespeichert.")
+    except Exception as e:
+        logging.error(f"Fehler beim Schreiben der Testergebnisse in die Datenbank für Dataset {datenname}: {e}")
+        raise  # Re-raise, damit die übergeordnete Funktion es auch mitbekommt
 
 
 # -------------------------------
@@ -152,7 +169,7 @@ def erstelle_modell_tests_tabelle(engine, db_schema):
                 laufzeit TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
-    print("Tabelle 'modell_tests' geprüft/erstellt.")
+    logging.info("Tabelle 'modell_tests' geprüft/erstellt.") # Logging
 
 
 # -------------------------------
