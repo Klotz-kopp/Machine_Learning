@@ -3,6 +3,7 @@ import model_test
 from auswertung import Auswertung
 from utils import zeit_messen  # <-- WICHTIG
 import logging # Import Logging
+import sys
 
 @zeit_messen
 def main():
@@ -13,9 +14,9 @@ def main():
         print(f"Fehler beim Ausführen von dataframe_to_db.main(): {e}")
         # Entscheidung: Programm hier beenden oder fortsetzen?
         # Für Abbruch:
-        # sys.exit(1)
+        sys.exit(1)
         # Für Fortsetzung (mit Loggen):
-        pass
+        # pass
 
     try:
         model_test.main()
@@ -24,9 +25,9 @@ def main():
         print(f"Fehler beim Ausführen von model_test.main(): {e}")
         # Entscheidung: Programm hier beenden oder fortsetzen?
         # Für Abbruch:
-        # sys.exit(1)
+        sys.exit(1)
         # Für Fortsetzung (mit Loggen):
-        pass
+        # pass
 
 
 
@@ -36,9 +37,11 @@ def main():
         for gruppierung in ["modellname", "datenname"]:
             try:
                 auswertung.speichere_gruppierte_ergebnisse_csv(gruppierung)
-                auswertung.plot_beste_scores(gruppierung)
+                auswertung.plot_beste_scores('score', gruppierung)
+                auswertung.plot_beste_scores('f1', gruppierung)
                 auswertung.plot_schnellste_durchlaeufe(gruppierung)
-                auswertung.ranking_plot(gruppierung)
+                auswertung.ranking_plot('score', gruppierung)
+                auswertung.ranking_plot('f1', gruppierung)
                 auswertung.generiere_html_report(gruppierung)
             except Exception as e:
                 logging.error(f"Fehler bei der Auswertung für Gruppierung '{gruppierung}': {e}")

@@ -14,6 +14,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import f1_score
+from sklearn.metrics import confusion_matrix
 from datetime import datetime
 
 from db import DatenbankVerbindung
@@ -43,7 +45,9 @@ class MLModell:
         try:
             predictions = self.model.predict(X_test)
             self.score = accuracy_score(y_test, predictions) * 100
-            return self.score
+            self.f1 = f1_score(y_test, predictions, average='weighted') * 100
+            self.cm = confusion_matrix(y_test, predictions)
+            return self.score, self.f1, self.cm
         except Exception as e:
             raise RuntimeError(f"Fehler beim Testen des Modells {self.name}: {e}") from e
 
@@ -103,9 +107,9 @@ def main():
                 start = time.time()
                 try:
                     modell.train(X_train, y_train, i)
-                    score = modell.testen(X_test, y_test, i)
+                    score, f1, cm = modell.testen(X_test, y_test, i)
                     dauer = time.time() - start
-                    Ergebnisse[modell.name + '_ergebnis'].append((i, score, dauer))
+                    Ergebnisse[modell.name + '_ergebnis'].append((i, score, f1, cm, dauer))
                     logging.info(f"Modell {modell.name}, Durchgang {i}, Score: {score:.2f}, Dauer: {dauer:.2f}s")
                 except RuntimeError as e:
                     logging.error(f"Fehler bei Modell {modell.name}, Durchgang {i}: {e}")
@@ -148,10 +152,12 @@ def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
 
     for key, werte in Ergebnisse.items():
         modellname = key.replace('_ergebnis', '')
-        for durchgang, score, dauer in werte:
+        for durchgang, score, f1, cm, dauer in werte:
             datensaetze.append({
                 'modellname': modellname,
                 'score': score,
+                'f1' : f1,
+                'cm' : str(cm.tolist()),
                 'durchgang': durchgang,
                 'dauer': dauer,
                 'datenname': datenname,
@@ -191,6 +197,8 @@ def erstelle_modell_tests_tabelle(engine, db_schema):
                     id SERIAL PRIMARY KEY,
                     modellname TEXT NOT NULL,
                     score FLOAT NOT NULL,
+                    f1 FLOAT NOT NULL,
+                    cm TEXT NOT NULL,
                     durchgang INT NOT NULL,
                     dauer FLOAT NOT NULL,
                     datenname TEXT NOT NULL,
