@@ -36,6 +36,7 @@ class DatasetPipeline:
         """Optional: spezielle Aufbereitung für bestimmte Datasets."""
         try:
             if self.name == 'malware_detect':
+                self.df = self.df.copy()
                 self.df['Label'] = self.df['Label'].astype(int)
             logging.info(f"Preprocessing für Dataset '{self.name}' abgeschlossen.")  # Logging
         except Exception as e:

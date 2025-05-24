@@ -35,6 +35,8 @@ class MLModell:
         self.score = 0
 
     def train(self, X_train, y_train, i):
+        if X_train is None or y_train is None:
+            raise RuntimeError("Trainingsdaten dürfen nicht None sein.")
         try:
             self.model = self.model_func(i)  # Modellinstanz mit aktuellem Parameter erzeugen
             self.model.fit(X_train, y_train)

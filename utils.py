@@ -66,7 +66,6 @@ def zeit_messen(func):
             logging.error(f"Fehler bei der Ausführung von Funktion '{func.__name__}': {e}")
             print(f"Fehler bei der Ausführung von Funktion '{func.__name__}': {e}")
             raise  # Re-raise, damit der Aufrufer die Exception auch sieht
-
     return wrapper
 
 
