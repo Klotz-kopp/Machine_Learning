@@ -1,13 +1,15 @@
 #  Copyright (c) 2025. Diese Python Skripte wurden von mir erstellt und können als Referenz von anderen genutzt und gelesen werden.
 # db.py
 import configparser
-import create_config
+import logging  # Import Logging
 import sys
-import psycopg2
 from base64 import b64decode
-from sqlalchemy import create_engine, exc
+
 import pandas as pd
-import logging # Import Logging
+from sqlalchemy import create_engine, exc
+
+import create_config
+
 
 class DatenbankVerbindung:
     """

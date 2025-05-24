@@ -1,9 +1,11 @@
+import logging  # Import Logging
+import sys
+
 import dataframe_to_db
 import model_test
 from auswertung import Auswertung
 from utils import zeit_messen  # <-- WICHTIG
-import logging # Import Logging
-import sys
+
 
 @zeit_messen
 def main():

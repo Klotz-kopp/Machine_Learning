@@ -5,12 +5,14 @@ dataframe_to_db.py
 Dieses Skript lädt vordefinierte Datasets, bereitet sie auf und speichert sie in einer PostgreSQL-Datenbank.
 Die zugehörigen Metadaten werden ebenfalls in einer zentralen Tabelle abgelegt.
 """
-import time
-from sklearn.model_selection import train_test_split
-from db import DatenbankVerbindung
-from datasets import datasets  # auslagern für Übersicht
-import pandas as pd
 import logging  # Importiere das Logging Modul
+import time
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+from datasets import datasets  # auslagern für Übersicht
+from db import DatenbankVerbindung
 
 
 # DONE iteration über alle Datasets {name : (Import, Target_Spalte, Beschreibung)} um vollautomatisch die die Dataframes zu erstellen und in der pg Datenbank speichern.

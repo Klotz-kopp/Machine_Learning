@@ -1,9 +1,9 @@
 #  Copyright (c) 2025. Diese Python Skripte wurden von mir erstellt und können als Referenz von anderen genutzt und gelesen werden.
-import re
+import logging  # Import Logging
 import os
-from time import time
+import re
 from functools import wraps
-import logging # Import Logging
+from time import time
 
 Farben = {
     'Schwarz': '\033[30m',
@@ -34,7 +34,6 @@ def printf(*args, sep=' ', end='\n'):
     print(sep.join(output), end=end)
 
 
-
 def pruefe_und_erstelle_ordner(pfad: str):
     """Erstellt den Ordner, falls er noch nicht existiert."""
     try:
@@ -45,7 +44,6 @@ def pruefe_und_erstelle_ordner(pfad: str):
         print(f"Fehler beim Erstellen des Ordners '{pfad}': {e}")
         logging.error(f"Fehler beim Erstellen des Ordners '{pfad}': {e}")
         raise  # решаем, что ошибка при создании директории - критическая
-
 
 
 def zeit_messen(func):

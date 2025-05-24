@@ -1,12 +1,13 @@
 #  Copyright (c) 2025. Diese Python Skripte wurden von mir erstellt und können als Referenz von anderen genutzt und gelesen werden.
+import logging  # Importiere das Logging Modul
 import os
-import pandas as pd
-import numpy as np
+
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
+
 from db import DatenbankVerbindung
 from utils import pruefe_und_erstelle_ordner
-import logging  # Importiere das Logging Modul
 
 
 class Auswertung:

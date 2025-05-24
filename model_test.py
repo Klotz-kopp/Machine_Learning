@@ -3,24 +3,25 @@
 # Führt das Training & die Evaluierung aller ML-Modelle für alle gespeicherten Datasets durch.
 # Ergebnisse werden in der PostgreSQL-Datenbank gespeichert – Auswertungen erfolgen in separatem Modul.
 
-import sys
+import logging  # Import Logging
 import time
+from datetime import datetime
+
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import f1_score
-from sklearn.metrics import confusion_matrix
-from datetime import datetime
 
 from db import DatenbankVerbindung
 from utils import printf, zeit_messen
-import logging # Import Logging
+
 
 # -------------------------------
 # Klasse für ein ML-Modell mit dynamischer Parametrisierung (z.B. Nachbarn, max_iter etc.)
@@ -33,6 +34,8 @@ class MLModell:
         self.model_func = model_func
         self.model = None
         self.score = 0
+        self.f1 = 0
+        self.cm = ()
 
     def train(self, X_train, y_train, i):
         if X_train is None or y_train is None:
@@ -116,7 +119,7 @@ def main():
                 except RuntimeError as e:
                     logging.error(f"Fehler bei Modell {modell.name}, Durchgang {i}: {e}")
                     print(f"Fehler bei Modell {modell.name}, Durchgang {i}: {e}")
-                    Ergebnisse[modell.name + '_ergebnis'].append((i, 0, time.time() - start)) #Ergebnis festhalten
+                    Ergebnisse[modell.name + '_ergebnis'].append((i, 0, time.time() - start))  # Ergebnis festhalten
                     continue  # Gehe zum nächsten Modell über
             printf(f"Durchgang {i} abgeschlossen.")
             logging.info(f"Durchgang {i} abgeschlossen.")
@@ -129,10 +132,9 @@ def main():
             print(f"Fehler beim Speichern der Ergebnisse für Dataset {datenname}: {e}")
 
 
-
 # -------------------------------
 # Speichert alle Testergebnisse (je Modell, Durchgang) in PostgreSQL-Tabelle `modell_tests`
-# -------------------------------
+# ----------------------------
 @zeit_messen
 def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
     engine = db.get_engine()
@@ -146,8 +148,6 @@ def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
         print(f"Fehler beim Erstellen der Tabelle 'modell_tests': {e}")
         raise  # Re-raise, damit die übergeordnete Funktion es auch mitbekommt
 
-
-
     # Alle Ergebnisse in flache Liste für DataFrame umwandeln
     aktuelle_zeit = datetime.now()
     datensaetze = []
@@ -158,8 +158,8 @@ def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
             datensaetze.append({
                 'modellname': modellname,
                 'score': score,
-                'f1' : f1,
-                'cm' : str(cm.tolist()),
+                'f1': f1,
+                'cm': str(cm.tolist()),
                 'durchgang': durchgang,
                 'dauer': dauer,
                 'datenname': datenname,
@@ -187,8 +187,7 @@ def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
         raise  # Re-raise, damit die übergeordnete Funktion es auch mitbekommt
 
 
-
-# -------------------------------
+#--------------------------------
 # Erstellt Tabelle `modell_tests` falls sie noch nicht existiert
 # -------------------------------
 def erstelle_modell_tests_tabelle(engine, db_schema):
