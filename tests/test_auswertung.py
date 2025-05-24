@@ -29,7 +29,7 @@ def auswertung_instanz():
 # Tests
 # ------------------------
 
-def test_init_lädt_daten(auswertung_instanz):
+def test_init_laedt_daten(auswertung_instanz):
     assert isinstance(auswertung_instanz.df, pd.DataFrame)
     assert not auswertung_instanz.df.empty
 

@@ -154,3 +154,9 @@ class DatenbankVerbindung:
         except Exception as e:
             print(f"Fehler beim Schreiben der Metadaten für Dataset '{metadaten['dataset_name']}': {e}")
             logging.error(f"Fehler beim Schreiben der Metadaten für Dataset '{metadaten['dataset_name']}': {e}") # Logging
+
+    def get_engine(self):
+        return self.engine
+
+    def get_schema(self):
+        return self.db_schema

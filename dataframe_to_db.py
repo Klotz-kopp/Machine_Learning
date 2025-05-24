@@ -59,10 +59,10 @@ class DatasetPipeline:
             y_test_df = pd.DataFrame(y_test)
 
             start = time.time()
-            self.db.write_dataframe(X_train_df, self.name + '_X_train')
-            self.db.write_dataframe(X_test_df, self.name + '_X_test')
-            self.db.write_dataframe(y_train_df, self.name + '_y_train')
-            self.db.write_dataframe(y_test_df, self.name + '_y_test')
+            self.db.schreibe_dataframe(X_train_df, self.name + '_X_train')
+            self.db.schreibe_dataframe(X_test_df, self.name + '_X_test')
+            self.db.schreibe_dataframe(y_train_df, self.name + '_y_train')
+            self.db.schreibe_dataframe(y_test_df, self.name + '_y_test')
 
             dauer = time.time() - start
             logging.info(f"Split & Save für Dataset '{self.name}' abgeschlossen in {dauer:.2f} Sekunden.")  # Logging
