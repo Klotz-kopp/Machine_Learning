@@ -2,6 +2,7 @@
 import logging  # Import Logging
 import os
 import re
+import inspect
 from functools import wraps
 from time import time
 
@@ -74,16 +75,19 @@ def zeit_umrechnen(dauer):
 
 
 def log_start(func):
-    """Decorator, der beim Start einer Funktion/Methode ein Info-Log schreibt."""
+    """Decorator, der beim Start einer Funktion oder Methode ein Info-Log schreibt."""
     @wraps(func)
     def wrapper(*args, **kwargs):
         modul = func.__module__
-        if args and hasattr(args[0], '__class__'):
-            # Methode einer Klasse
+
+        # Prüfen, ob Methode einer Instanz-Klasse (nicht einfach nur "etwas mit __class__")
+        if args and inspect.ismethod(func) or (args and hasattr(args[0], func.__name__)):
             name = f"{args[0].__class__.__name__}.{func.__name__}"
+            typ = "Methode"
         else:
-            # Funktion
             name = func.__name__
-        logging.info(f"[{modul}] Starte {'Methode' if hasattr(args[0], '__class__') else 'Funktion'}: {name}")
+            typ = "Funktion"
+
+        logging.info(f"[{modul}] Starte {typ}: {name}")
         return func(*args, **kwargs)
     return wrapper
