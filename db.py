@@ -58,7 +58,7 @@ class DatenbankVerbindung:
             logging.critical(f"Fehler beim Verbindungsaufbau zur Datenbank: {e}") # Logging
             self.engine = None
             self.verbindung_erfolgreich = False
-            sys.exit() # Skript beenden, da keine DB-Verbindung
+            raise RuntimeError("Keine Datenbankverbindung möglich") # Skript beenden, da keine DB-Verbindung
 
     @log_start
     def test_verbindung(self):
@@ -112,7 +112,11 @@ class DatenbankVerbindung:
         """
         try:
             with self.engine.connect() as conn:
-                query = f"SELECT dataset_name, beschreibung, df_tabelle, x_test_tabelle, x_train_tabelle, y_test_tabelle, y_train_tabelle FROM {self.db_schema}.dataframe;"
+                query = text(f"""
+                    SELECT dataset_name, beschreibung, df_tabelle, x_test_tabelle,
+                           x_train_tabelle, y_test_tabelle, y_train_tabelle
+                    FROM {self.db_schema}.dataframe
+                """)
                 result = conn.execute(query)
                 return [dict(row._mapping) for row in result]  # SQLAlchemy RowProxy → dict
         except Exception as e:
