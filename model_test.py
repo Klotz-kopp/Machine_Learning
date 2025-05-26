@@ -20,7 +20,7 @@ from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
 from db import DatenbankVerbindung
-from utils import printf, zeit_messen
+from utils import printf, zeit_messen, log_start
 
 
 # -------------------------------
@@ -36,7 +36,8 @@ class MLModell:
         self.score = 0
         self.f1 = 0
         self.cm = ()
-
+    
+    @log_start
     def train(self, X_train, y_train, i):
         if X_train is None or y_train is None:
             raise RuntimeError("Trainingsdaten dürfen nicht None sein.")
@@ -45,6 +46,8 @@ class MLModell:
             self.model.fit(X_train, y_train)
         except Exception as e:
             raise RuntimeError(f"Fehler beim Training des Modells {self.name}: {e}") from e
+
+    @log_start
 
     def testen(self, X_test, y_test, i):
         try:
@@ -75,6 +78,7 @@ Modelle = [
 # -------------------------------
 # Hauptfunktion: Trainings- und Testlauf für alle Datasets und Modelle
 # -------------------------------
+@log_start
 @zeit_messen
 def main():
     db = DatenbankVerbindung()
@@ -135,6 +139,7 @@ def main():
 # -------------------------------
 # Speichert alle Testergebnisse (je Modell, Durchgang) in PostgreSQL-Tabelle `modell_tests`
 # ----------------------------
+@log_start
 @zeit_messen
 def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
     engine = db.get_engine()
@@ -190,6 +195,7 @@ def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
 #--------------------------------
 # Erstellt Tabelle `modell_tests` falls sie noch nicht existiert
 # -------------------------------
+@log_start
 def erstelle_modell_tests_tabelle(engine, db_schema):
     try:
         with engine.begin() as conn:

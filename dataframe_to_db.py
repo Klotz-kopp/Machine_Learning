@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 
 from datasets import datasets  # auslagern für Übersicht
 from db import DatenbankVerbindung
-
+from utils import log_start
 
 # DONE iteration über alle Datasets {name : (Import, Target_Spalte, Beschreibung)} um vollautomatisch die die Dataframes zu erstellen und in der pg Datenbank speichern.
 # DONE prüfen ob eine Aufteilung auf mehrere Dateien sinnvoll ist.
@@ -34,6 +34,7 @@ class DatasetPipeline:
         self.df_name = name + "_df"
         logging.info(f"DatasetPipeline für Dataset '{name}' initialisiert.")  # Logging
 
+    @log_start
     def preprocess(self):
         """Optional: spezielle Aufbereitung für bestimmte Datasets."""
         try:
@@ -45,6 +46,7 @@ class DatasetPipeline:
             logging.error(f"Fehler bei der Vorverarbeitung von Dataset '{self.name}': {e}")
             raise  # Kritischer Fehler: Abbruch, da Datenaufbereitung fehlschlagen ist.
 
+    @log_start
     def split_and_save(self):
         """
         Teilt das Dataset in Trainings- und Testdaten auf und speichert diese in separaten Tabellen.
@@ -72,6 +74,7 @@ class DatasetPipeline:
             logging.error(f"Fehler beim Aufteilen und Speichern von Dataset '{self.name}': {e}")
             raise  # Kritischer Fehler: Abbruch, da Datenverarbeitung fehlschlagen ist.
 
+    @log_start
     def schreibe_metadaten(self):
         """Speichert Metadaten zur Datenstruktur in einer zentralen Tabelle."""
         try:
@@ -91,6 +94,7 @@ class DatasetPipeline:
             raise  # Kritischer Fehler: Abbruch, da Metadaten nicht geschrieben werden konnten.
 
 
+@log_start
 def main():
     db = DatenbankVerbindung()
 

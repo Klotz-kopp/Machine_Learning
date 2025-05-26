@@ -7,7 +7,7 @@ import pandas as pd
 import seaborn as sns
 
 from db import DatenbankVerbindung
-from utils import pruefe_und_erstelle_ordner
+from utils import pruefe_und_erstelle_ordner, log_start
 
 
 class Auswertung:
@@ -22,6 +22,7 @@ class Auswertung:
             logging.error(f"Fehler beim Initialisieren der Auswertung: {e}")
             raise  # Kritischer Fehler: Programmabbruch
 
+    @log_start
     def _speichere_plot(self, pfad: str):
         """
         Hilfsmethode zum Speichern eines aktuellen Plots
@@ -36,6 +37,7 @@ class Auswertung:
             # Nicht kritisch: Fortfahren
             print(f"Fehler beim Speichern des Plots. Details im Log.")
 
+    @log_start
     def speichere_gruppierte_ergebnisse_csv(self, gruppiert_nach: str = 'modellname', ordner: str = 'Auswertung'):
         """
         Speichert für jede Gruppe (Modell oder Dataset) eine CSV mit allen zugehörigen Ergebnissen.
@@ -61,6 +63,7 @@ class Auswertung:
             print(f"Unerwarteter Fehler beim Speichern der CSV-Dateien. Details im Log.")
             # Nicht kritisch: Fortfahren
 
+    @log_start
     def plot_beste_scores(self,wert: str = 'score', gruppiert_nach: str = 'modellname', ordner: str = 'Auswertung'):
         """
         Erstellt einen Balkenplot der besten Scores für jede Gruppe.
@@ -92,7 +95,8 @@ class Auswertung:
             logging.error(f"Fehler in plot_beste_scores: {e}")
             print(f"Unerwarteter Fehler beim Erstellen der Balkenplots. Details im Log.")
             # Nicht kritisch: Fortfahren
-
+    
+    @log_start
     def plot_schnellste_durchlaeufe(self, gruppiert_nach: str = 'modellname', ordner: str = 'Auswertung'):
         """
         Erstellt einen Balkenplot der schnellsten Durchläufe für jede Gruppe.
@@ -122,6 +126,7 @@ class Auswertung:
             print(f"Unerwarteter Fehler beim Erstellen der Balkenplots. Details im Log.")
             # Nicht kritisch: Fortfahren
 
+    @log_start
     def ranking_plot(self, wert: str = 'score', gruppiert_nach: str = 'modellname', ordner: str = "Auswertung"):
         """
         Erstellt einen Scatterplot, der die Scores und Durchlaufzeiten der Modelle/Datasets vergleicht.
@@ -145,6 +150,7 @@ class Auswertung:
             print(f"Unerwarteter Fehler beim Erstellen des Ranking-Plots. Details im Log.")
             # Nicht kritisch: Fortfahren
 
+    @log_start
     def generiere_html_report(self, gruppiert_nach: str = 'modellname', ordner: str = 'Auswertung'):
         """
         Generiert einen HTML-Report für jede Gruppe (Modell oder Dataset).

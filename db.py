@@ -9,6 +9,7 @@ import pandas as pd
 from sqlalchemy import create_engine, exc
 
 import create_config
+from utils import log_start
 
 
 class DatenbankVerbindung:
@@ -59,7 +60,7 @@ class DatenbankVerbindung:
             self.verbindung_erfolgreich = False
             sys.exit() # Skript beenden, da keine DB-Verbindung
 
-
+    @log_start
     def test_verbindung(self):
         """
         Prüft, ob die Verbindung zur Datenbank besteht.
@@ -80,7 +81,8 @@ class DatenbankVerbindung:
             print(f"Unerwarteter Fehler beim Testen der Datenbankverbindung: {e}")
             logging.critical(f"Unerwarteter Fehler beim Testen der Datenbankverbindung: {e}")  # Logging
             return False
-
+    
+    @log_start
     def test_tabelle(self, tabellenname):
         """
         Prüft, ob eine Tabelle in der Datenbank existiert.
@@ -89,17 +91,20 @@ class DatenbankVerbindung:
         """
         try:
             with self.engine.connect() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = %s AND table_name = %s)",
-                        (self.db_schema, tabellenname)
-                    )
-                    return cur.fetchone()[0]
+                query = (
+                    "SELECT EXISTS (SELECT FROM information_schema.tables "
+                    "WHERE table_schema = %s AND table_name = %s)"
+                )
+                result = conn.execute(
+                    f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = '{self.db_schema}' AND table_name = '{tabellenname}')"
+                )
+                return result.scalar()
         except Exception as e:
             print(f"Fehler bei test_tabelle('{tabellenname}'): {e}")
             logging.error(f"Fehler bei test_tabelle('{tabellenname}'): {e}") # Logging
             return False
 
+    @log_start
     def lade_dataset_metadaten(self):
         """
         Lädt alle Datensätze (Metadaten) aus der Tabelle 'dataframe'.
@@ -115,7 +120,7 @@ class DatenbankVerbindung:
             logging.error(f"Fehler beim Laden der Metadaten: {e}") # Logging
             return [] # Leere Liste bei Fehler
 
-
+    @log_start
     def lade_modelltestergebnisse(self) -> pd.DataFrame:
         """
         Lädt alle Modell-Test-Ergebnisse aus der Tabelle 'modell_tests' und gibt sie als DataFrame zurück.
@@ -129,6 +134,7 @@ class DatenbankVerbindung:
             logging.error(f"Fehler beim Laden der Modelltestergebnisse: {e}") # Logging
             return pd.DataFrame()  # Leerer DataFrame bei Fehler
 
+    @log_start
     def schreibe_dataframe(self, df: pd.DataFrame, tabellenname: str):
         """
         Speichert einen Pandas DataFrame in der Datenbank. Überschreibt die Tabelle, falls sie existiert.
@@ -143,6 +149,7 @@ class DatenbankVerbindung:
             print(f"Fehler beim Schreiben des DataFrames in die Tabelle '{tabellenname}': {e}")
             logging.error(f"Fehler beim Schreiben des DataFrames in die Tabelle '{tabellenname}': {e}") # Logging
 
+    @log_start
     def schreibe_metadaten(self, metadaten: dict):
         """
         Schreibt Metadaten über einen Datensatz in die Tabelle 'dataframe'.
@@ -150,6 +157,10 @@ class DatenbankVerbindung:
         :param metadaten: Ein Dictionary mit den Metadaten.
         """
         try:
+            # Sicherstellen, dass Tabelle existiert
+            if not self.test_tabelle("dataframe"):
+                logging.warning("Tabelle 'dataframe' fehlt – wird jetzt erstellt.")
+                create_config.create_dataframe_tabelle(self.config)
             df = pd.DataFrame([metadaten])
             df.to_sql(name='dataframe', con=self.engine, if_exists='append', index=False, schema=self.db_schema)
             logging.info(f"Metadaten für Dataset '{metadaten['dataset_name']}' erfolgreich geschrieben.") # Logging
@@ -157,8 +168,10 @@ class DatenbankVerbindung:
             print(f"Fehler beim Schreiben der Metadaten für Dataset '{metadaten['dataset_name']}': {e}")
             logging.error(f"Fehler beim Schreiben der Metadaten für Dataset '{metadaten['dataset_name']}': {e}") # Logging
 
+    @log_start
     def get_engine(self):
         return self.engine
 
+    @log_start
     def get_schema(self):
         return self.db_schema

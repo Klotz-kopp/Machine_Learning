@@ -5,8 +5,9 @@ import logging
 from base64 import b64encode, b64decode
 
 from sqlalchemy import create_engine
+from utils import log_start
 
-
+@log_start
 def create_config():
     """
     Erstellt eine Konfigurationsdatei (db_config.cfg) für die Datenbankverbindung.
@@ -36,6 +37,7 @@ def create_config():
     logging.info("Config-Datei erfolgreich erstellt!") # Logging
 
 
+@log_start
 def create_dataframe_tabelle(config):
     """
     Erstellt die Tabelle 'dataframe' in der Datenbank, falls sie noch nicht existiert.

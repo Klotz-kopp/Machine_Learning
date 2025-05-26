@@ -5,8 +5,8 @@ import dataframe_to_db
 import model_test
 from auswertung import Auswertung
 from utils import zeit_messen  # <-- WICHTIG
-
-
+from utils import log_start
+@log_start
 @zeit_messen
 def main():
     try:

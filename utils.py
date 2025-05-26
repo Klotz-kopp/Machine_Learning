@@ -71,3 +71,19 @@ def zeit_umrechnen(dauer):
     minuten = int(dauer // 60)
     sekunden = dauer % 60
     return minuten, sekunden
+
+
+def log_start(func):
+    """Decorator, der beim Start einer Funktion/Methode ein Info-Log schreibt."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        modul = func.__module__
+        if args and hasattr(args[0], '__class__'):
+            # Methode einer Klasse
+            name = f"{args[0].__class__.__name__}.{func.__name__}"
+        else:
+            # Funktion
+            name = func.__name__
+        logging.info(f"[{modul}] Starte {'Methode' if hasattr(args[0], '__class__') else 'Funktion'}: {name}")
+        return func(*args, **kwargs)
+    return wrapper
