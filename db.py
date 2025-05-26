@@ -6,7 +6,7 @@ import sys
 from base64 import b64decode
 
 import pandas as pd
-from sqlalchemy import create_engine, exc
+from sqlalchemy import create_engine, exc, text
 
 import create_config
 from utils import log_start
@@ -70,7 +70,7 @@ class DatenbankVerbindung:
             return False  # Verbindung besteht nicht
         try:
             with self.engine.connect() as conn:
-                conn.execute(f"SELECT 1")  # Einfache Abfrage, um die Verbindung zu testen
+                conn.execute(text("SELECT 1"))  # Einfache Abfrage, um die Verbindung zu testen
             logging.info("Datenbankverbindungstest erfolgreich.")  # Logging
             return True
         except exc.DBAPIError as e:
@@ -81,7 +81,7 @@ class DatenbankVerbindung:
             print(f"Unerwarteter Fehler beim Testen der Datenbankverbindung: {e}")
             logging.critical(f"Unerwarteter Fehler beim Testen der Datenbankverbindung: {e}")  # Logging
             return False
-    
+
     @log_start
     def test_tabelle(self, tabellenname):
         """
@@ -91,17 +91,17 @@ class DatenbankVerbindung:
         """
         try:
             with self.engine.connect() as conn:
-                query = (
-                    "SELECT EXISTS (SELECT FROM information_schema.tables "
-                    "WHERE table_schema = %s AND table_name = %s)"
-                )
-                result = conn.execute(
-                    f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = '{self.db_schema}' AND table_name = '{tabellenname}')"
-                )
+                stmt = text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = :schema AND table_name = :table
+                    )
+                """)
+                result = conn.execute(stmt, {"schema": self.db_schema, "table": tabellenname})
                 return result.scalar()
         except Exception as e:
             print(f"Fehler bei test_tabelle('{tabellenname}'): {e}")
-            logging.error(f"Fehler bei test_tabelle('{tabellenname}'): {e}") # Logging
+            logging.error(f"Fehler bei test_tabelle('{tabellenname}'): {e}")
             return False
 
     @log_start
