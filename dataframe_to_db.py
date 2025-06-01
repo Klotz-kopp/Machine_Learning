@@ -41,10 +41,20 @@ class DatasetPipeline:
             if self.name == 'malware_detect':
                 self.df = self.df.copy()
                 self.df['Label'] = self.df['Label'].astype(int)
-            logging.info(f"Preprocessing für Dataset '{self.name}' abgeschlossen.")  # Logging
+
+            elif self.name == 'penguins':
+                self.df = self.df.copy()
+                # Geschlecht in numerische Werte umwandeln
+                self.df['sex'] = self.df['sex'].map({'Male': 0, 'Female': 1})
+                # Inselnamen kodieren
+                self.df['island'] = self.df['island'].map({'Torgersen': 1, 'Biscoe': 2, 'Dream': 3})
+                # Spezies kodieren
+                self.df['species'] = self.df['species'].map({'Adelie': 1, 'Chinstrap': 2, 'Gentoo': 3})
+
+            logging.info(f"Preprocessing für Dataset '{self.name}' abgeschlossen.")
         except Exception as e:
             logging.error(f"Fehler bei der Vorverarbeitung von Dataset '{self.name}': {e}")
-            raise  # Kritischer Fehler: Abbruch, da Datenaufbereitung fehlschlagen ist.
+            raise  # Kritischer Fehler: Abbruch, da Datenaufbereitung fehlschlug
 
     @log_start
     def split_and_save(self):

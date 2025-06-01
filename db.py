@@ -157,6 +157,7 @@ class DatenbankVerbindung:
     def schreibe_metadaten(self, metadaten: dict):
         """
         Schreibt Metadaten über einen Datensatz in die Tabelle 'dataframe'.
+        Falls der Datensatz bereits existiert (dataset_name = PK), wird er aktualisiert.
 
         :param metadaten: Ein Dictionary mit den Metadaten.
         """
@@ -165,12 +166,34 @@ class DatenbankVerbindung:
             if not self.test_tabelle("dataframe"):
                 logging.warning("Tabelle 'dataframe' fehlt – wird jetzt erstellt.")
                 create_config.create_dataframe_tabelle(self.config)
-            df = pd.DataFrame([metadaten])
-            df.to_sql(name='dataframe', con=self.engine, if_exists='append', index=False, schema=self.db_schema)
-            logging.info(f"Metadaten für Dataset '{metadaten['dataset_name']}' erfolgreich geschrieben.") # Logging
+
+            # Direktes SQL mit Konfliktbehandlung
+            with self.engine.begin() as conn:
+                conn.execute(text(
+                    f"""
+                    INSERT INTO {self.db_schema}.dataframe (
+                        dataset_name, beschreibung, df_tabelle,
+                        x_test_tabelle, x_train_tabelle, y_test_tabelle, y_train_tabelle
+                    )
+                    VALUES (
+                        %(dataset_name)s, %(beschreibung)s, %(df_tabelle)s,
+                        %(x_test_tabelle)s, %(x_train_tabelle)s, %(y_test_tabelle)s, %(y_train_tabelle)s
+                    )
+                    ON CONFLICT (dataset_name) DO UPDATE SET
+                        beschreibung = EXCLUDED.beschreibung,
+                        df_tabelle = EXCLUDED.df_tabelle,
+                        x_test_tabelle = EXCLUDED.x_test_tabelle,
+                        x_train_tabelle = EXCLUDED.x_train_tabelle,
+                        y_test_tabelle = EXCLUDED.y_test_tabelle,
+                        y_train_tabelle = EXCLUDED.y_train_tabelle;
+                    """,
+                    metadaten
+                ))
+            logging.info(
+                f"Metadaten für Dataset '{metadaten['dataset_name']}' erfolgreich geschrieben oder aktualisiert.")
         except Exception as e:
             print(f"Fehler beim Schreiben der Metadaten für Dataset '{metadaten['dataset_name']}': {e}")
-            logging.error(f"Fehler beim Schreiben der Metadaten für Dataset '{metadaten['dataset_name']}': {e}") # Logging
+            logging.error(f"Fehler beim Schreiben der Metadaten für Dataset '{metadaten['dataset_name']}': {e}")
 
     @log_start
     def get_engine(self):

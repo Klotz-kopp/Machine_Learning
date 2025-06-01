@@ -61,11 +61,32 @@ def main():
 # Einstiegspunkt
 # -------------------------------
 if __name__ == "__main__":
-    # Konfiguration des Loggings ZUERST, damit es überall verfügbar ist.
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        filename='main.log',  # Optional: Log in eine Datei
-        filemode='a'
-    )
+    # Eigener Logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)  # Alles durchlassen
+
+    # Bestehende Handler entfernen (z. B. von basicConfig)
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    # --------- INFO & WARNING Handler ---------
+    class InfoWarningFilter(logging.Filter):
+        def filter(self, record):
+            return record.levelno in (logging.INFO, logging.WARNING)
+
+    info_handler = logging.FileHandler("main.info.log", mode='a')
+    info_handler.setLevel(logging.INFO)
+    info_handler.addFilter(InfoWarningFilter())  # Nur INFO & WARNING
+    info_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    # --------- ERROR & CRITICAL Handler ---------
+    error_handler = logging.FileHandler("main.error.log", mode='a')
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    # Handler hinzufügen
+    logger.addHandler(info_handler)
+    logger.addHandler(error_handler)
+
+    # Start der Anwendung
     main()

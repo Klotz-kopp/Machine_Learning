@@ -18,6 +18,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+from sqlalchemy import text
 
 from db import DatenbankVerbindung
 from utils import printf, zeit_messen, log_start
@@ -199,7 +200,7 @@ def speichere_ergebnisse_in_datenbank(Ergebnisse, datenname, db):
 def erstelle_modell_tests_tabelle(engine, db_schema):
     try:
         with engine.begin() as conn:
-            conn.execute(f"""
+            conn.execute(text(f"""
                 CREATE TABLE IF NOT EXISTS {db_schema}.modell_tests (
                     id SERIAL PRIMARY KEY,
                     modellname TEXT NOT NULL,
@@ -211,7 +212,7 @@ def erstelle_modell_tests_tabelle(engine, db_schema):
                     datenname TEXT NOT NULL,
                     laufzeit TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
-            """)
+            """))
         print("Tabelle 'modell_tests' geprüft/erstellt.")
         logging.info("Tabelle 'modell_tests' geprüft/erstellt.")
     except Exception as e:
